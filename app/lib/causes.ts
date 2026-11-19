@@ -12,7 +12,7 @@ const RULES: [RegExp, Phrase][] = [
   // Security
   [/SUSPICIOUS PACKAGE|BOMB/, "a suspicious package"],
   [/ASSAULT|ASSUALT|ROBBERY|SECURITY INCIDENT/, "a security incident"],
-  [/DISORDERLY/, ["a disorderly passenger", "a passenger who would not settle down"]],
+  [/DISORDERLY/, ["a disorderly passenger", "an unruly passenger"]],
   [/POLICE|\bTPS\b/, "a police investigation"],
   [/UNAUTHORIZED AT TRACK|PERSON ON TRACK/, "a person on the tracks"],
   [/GRAFFITI|SCRATCHITI/, "graffiti"],
@@ -22,20 +22,20 @@ const RULES: [RegExp, Phrase][] = [
   [/ESCL|ELEV|STAIRWAY/, "an escalator or elevator incident"],
 
   // Alarms and false alarms
-  [/PAA.*NO TROUBLE|ALARM.*NO TROUBLE/, "a passenger alarm that turned out to be nothing"],
-  [/EQUIPMENT.*NO TROUBLE/, "an equipment fault that could not be found afterward"],
+  [/PAA.*NO TROUBLE|ALARM.*NO TROUBLE/, "a false alarm"],
+  [/EQUIPMENT.*NO TROUBLE/, "a fault no one could find"],
 
   // People
-  [/MEDICAL AID REFUSED|TRANSPORTATION DECLINED|MEDICAL AID DECLINED/, "a passenger who needed medical attention, then declined it"],
+  [/MEDICAL AID REFUSED|TRANSPORTATION DECLINED|MEDICAL AID DECLINED/, "a sick passenger who refused help"],
   [/ILL OPERATOR/, "an operator falling ill"],
   [/INJURED EMPLOYEE/, "an injured employee"],
-  [/INJUR|ILL CUSTOMER|MEDICAL/, "a passenger in need of medical attention"],
+  [/INJUR|ILL CUSTOMER|MEDICAL/, "a medical emergency"],
 
   // On the street
   [/AUTO FOUL RAIL/, "a car blocking the tracks"],
   [/BLOCKED TRACK/, "a blocked track"],
   [/BLOCKED ROAD/, "a blocked road"],
-  [/TRAPPED VEHICLE/, "a vehicle boxed in by traffic"],
+  [/TRAPPED VEHICLE/, "a vehicle stuck in traffic"],
   [/TRAF|CONGES/, "traffic"],
   [/FIRE|SMOKE/, "a fire or smoke"],
   [/WEATHER|FORCE MAJEURE/, "the weather"],
@@ -44,25 +44,25 @@ const RULES: [RegExp, Phrase][] = [
   [/TRACK ISSUE/, "a track problem"],
 
   // Operations
-  [/NO OPERATOR|NO COLLECTOR|CREW/, ["a staffing shortage", "no operator being available"]],
+  [/NO OPERATOR|NO COLLECTOR|CREW/, ["a staffing shortage", "a missing operator"]],
   [/DIVERSION/, "a diversion"],
-  [/SHUTTLE/, "the vehicle being reassigned as a shuttle"],
+  [/SHUTTLE/, "shuttle duty"],
   [/SWITCH VIOLATION|VIOLATED SWITCH/, "a switching error"],
   [/VIOLATED SIGNAL|OVERSHOT|OVERSPEED/, "an operator error"],
-  [/SCHEDULE|LATE ENTERING|LATE VEHICLE/, "trouble keeping to the schedule"],
+  [/SCHEDULE|LATE ENTERING|LATE VEHICLE/, "falling behind schedule"],
   [/CLOSURE/, "a service closure"],
 
   // The vehicle
-  [/UNSANITARY/, ["an unsanitary vehicle", "a vehicle that needed cleaning"]],
+  [/UNSANITARY/, ["an unsanitary vehicle", "a dirty vehicle"]],
   [/DOOR/, "a door problem"],
-  [/RAMP/, "a problem with the accessibility ramp"],
+  [/RAMP/, "a ramp problem"],
   [/BRAKE/, "a brake problem"],
   [/PROPULSION|TRACTION|MOTOR/, "a propulsion problem"],
   [/HEAT|VENT|AIR CONDITIONING|HVAC/, "a heating or cooling problem"],
   [/WINDSHIELD|WIPER/, "a windshield wiper problem"],
   [/LIGHTING/, "a lighting problem"],
   [/COMMUNICATION|RADIO/, "a communications problem"],
-  [/VEHICLE CONTROLS/, "a problem with the vehicle's controls"],
+  [/VEHICLE CONTROLS/, "a controls problem"],
   [/\bBODY\b/, "damage to the vehicle"],
 
   // Signals, track and stations
@@ -73,19 +73,14 @@ const RULES: [RegExp, Phrase][] = [
 // When nothing above matches, describe it by the first letter of the code,
 // which is its category. These are deliberately vague, the way the records are.
 const CATEGORIES: Record<string, string[]> = {
-  E: [
-    "a mechanical problem",
-    "a mechanical problem of an unspecified nature",
-    "an equipment problem",
-    "a problem our records file under “other”",
-  ],
-  M: ["an incident on board", "an unspecified incident", "circumstances our records file under “miscellaneous”"],
-  P: ["an infrastructure problem", "a problem with the infrastructure"],
+  E: ["a mechanical problem", "an equipment problem", "an unknown mechanical problem"],
+  M: ["a miscellaneous problem", "an unspecified incident", "an unknown problem"],
+  P: ["an infrastructure problem"],
   S: ["a security incident", "a security matter"],
-  T: ["an operational issue", "an operational matter", "a problem our records list as “transportation – other”"],
+  T: ["an operational issue", "an unspecified issue"],
 };
 
-const FALLBACK = ["circumstances beyond our control", "an issue we are still looking into"];
+const FALLBACK = ["unknown causes", "circumstances beyond our control"];
 
 // Some codes in the delay logs aren't in the City's code lists, but the same
 // code exists for another mode (e.g. bus 'EFLT' and streetcar 'ETLT', lighting).
@@ -113,7 +108,7 @@ const ALERT_CAUSES: Record<string, Phrase> = {
   ACCIDENT: "a collision",
   CONSTRUCTION: "construction",
   MAINTENANCE: "maintenance work",
-  TECHNICAL_PROBLEM: ["a technical problem", "a technical problem of an unspecified nature"],
+  TECHNICAL_PROBLEM: "a technical problem",
   MEDICAL_EMERGENCY: "a medical emergency",
   POLICE_ACTIVITY: "police activity",
   WEATHER: "the weather",
