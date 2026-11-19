@@ -6,11 +6,13 @@ import { Form, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/new";
 import { formatDate, torontoToday } from "~/lib/format";
 import { MODES, type Mode } from "~/lib/lines";
+import { ModeIcon, TtcLogo } from "~/components/icons";
+import { RouteBadge } from "~/components/RouteBadge";
 import { coverage, findIncident, incidentsOn } from "~/server/incidents";
 import { createNote } from "~/server/notes";
 
 export function meta() {
-  return [{ title: "Get a late note · TTC Late Note" }];
+  return [{ title: "Request a late note · TTC Late Note" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -68,94 +70,119 @@ export default function NewNote({ loaderData, actionData }: Route.ComponentProps
 
   return (
     <main className="page">
-      <h1>What happened?</h1>
-      <Coverage range={range} />
-
-      {/* Step 1 and 2: choosing the day, vehicle and line. Changing any of them reloads the page. */}
-      <Form method="get" className="card" onChange={(e) => e.currentTarget.requestSubmit()}>
-        <label>
-          The day it happened
-          <input type="date" name="date" defaultValue={date} min={range.delaysFrom ?? undefined} max={today} required />
-        </label>
-
-        <fieldset>
-          <legend>I was on a</legend>
-          <div className="choices">
-            {MODES.map((m) => (
-              <label key={m} className="choice">
-                <input type="radio" name="mode" value={m} defaultChecked={m === mode} required />
-                {m}
-              </label>
-            ))}
+      <article className="paper form">
+        <header className="form-head">
+          <TtcLogo className="form-logo" />
+          <div>
+            <h1>Request for a late note</h1>
+            <p className="form-code">Form LN-1</p>
           </div>
-        </fieldset>
+        </header>
 
-        {date && mode && lines.length > 0 && (
-          <label>
-            The line
-            <select name="line" defaultValue={line} key={`${date}-${mode}`}>
-              <option value="">Choose a line…</option>
-              {lines.map((l) => (
-                <option key={l.route} value={l.route}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+        <Coverage range={range} />
+
+        {/* Day, vehicle and route. Changing any of them reloads the page with the new choice in the URL. */}
+        <Form method="get" className="form-section" onChange={(e) => e.currentTarget.requestSubmit()}>
+          <label className="field">
+            <span className="field-label">1. Date of the delay</span>
+            <input
+              type="date"
+              name="date"
+              className="blank"
+              defaultValue={date}
+              min={range.delaysFrom ?? undefined}
+              max={today}
+              required
+            />
           </label>
-        )}
 
-        <noscript>
-          <button type="submit" className="button">
-            Next
-          </button>
-        </noscript>
-      </Form>
-
-      {date && mode && lines.length === 0 && (
-        <p className="notice">
-          We have no record of any {mode} delays on {formatDate(date)}. Without a record, we can't vouch for you.
-        </p>
-      )}
-
-      {/* Step 3: choosing the incident and writing the note. */}
-      {incidents.length > 0 && (
-        <Form method="post" className="card">
-          <input type="hidden" name="date" value={date} />
-          <fieldset>
-            <legend>Which one got you?</legend>
-            <div className="incidents">
-              {incidents.map((i, n) => (
-                <label key={i.ref} className="incident">
-                  <input type="radio" name="incident" value={i.ref} defaultChecked={n === 0} />
-                  <span>
-                    {i.summary}
-                    <small>{i.source === "delay" ? "Official delay log" : "TTC service alert"}</small>
-                  </span>
+          <fieldset className="field">
+            <legend className="field-label">2. Vehicle</legend>
+            <div className="modes">
+              {MODES.map((m) => (
+                <label key={m} className="mode">
+                  <input type="radio" name="mode" value={m} defaultChecked={m === mode} required />
+                  <ModeIcon mode={m} className="mode-icon" />
+                  {m}
                 </label>
               ))}
             </div>
           </fieldset>
 
-          <label>
-            Your name
-            <input name="fromName" maxLength={60} required autoComplete="given-name" />
-          </label>
-          <label>
-            Who you kept waiting
-            <input name="toName" maxLength={60} required />
-          </label>
-          <label>
-            What you were late for
-            <input name="event" maxLength={80} required placeholder="our dinner reservation" />
-          </label>
+          {lines.length > 0 && (
+            <fieldset className="field" key={`${date}-${mode}`}>
+              <legend className="field-label">3. Route</legend>
+              <div className="routes">
+                {lines.map((l) => (
+                  <label key={l.route} className="route-choice">
+                    <input type="radio" name="line" value={l.route} defaultChecked={l.route === line} />
+                    <RouteBadge mode={mode as Mode} route={l.route} name={l.name} />
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
-          {actionData?.error && <p className="error">{actionData.error}</p>}
-
-          <button type="submit" className="button" disabled={busy}>
-            {busy ? "Writing…" : "Write my note"}
-          </button>
+          <noscript>
+            <button type="submit" className="button">
+              Next
+            </button>
+          </noscript>
         </Form>
-      )}
+
+        {date && mode && lines.length === 0 && (
+          <p className="notice">
+            No {mode} delays on file for {formatDate(date)}. Without a record, we can't vouch for you.
+          </p>
+        )}
+
+        {/* The delay itself and the people involved. */}
+        {incidents.length > 0 && (
+          <Form method="post" className="form-section">
+            <input type="hidden" name="date" value={date} />
+
+            <fieldset className="field">
+              <legend className="field-label">4. The delay that made you late</legend>
+              <div className="incidents">
+                {incidents.map((i, n) => (
+                  <label key={i.ref} className="incident">
+                    <input type="radio" name="incident" value={i.ref} defaultChecked={n === 0} />
+                    <span>
+                      {i.summary}
+                      <small>{i.source === "delay" ? "Official delay log" : "TTC service alert"}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <label className="field">
+              <span className="field-label">5. Your name</span>
+              <input name="fromName" className="blank handwritten" maxLength={60} required autoComplete="given-name" />
+            </label>
+            <label className="field">
+              <span className="field-label">6. Who you kept waiting</span>
+              <input name="toName" className="blank handwritten" maxLength={60} required />
+            </label>
+            <label className="field">
+              <span className="field-label">7. What you were late for</span>
+              <input
+                name="event"
+                className="blank handwritten"
+                maxLength={80}
+                required
+                placeholder="our dinner reservation"
+              />
+            </label>
+
+            {actionData?.error && <p className="notice">{actionData.error}</p>}
+
+            <button type="submit" className="button" disabled={busy}>
+              {busy ? "Processing…" : "Submit for processing"}
+            </button>
+          </Form>
+        )}
+      </article>
     </main>
   );
 }
@@ -171,7 +198,7 @@ function Coverage({ range }: { range: Route.ComponentProps["loaderData"]["range"
   if (sources.length === 0) return null;
 
   return (
-    <p className="muted">
+    <p className="form-note">
       We have the TTC's {sources.join(", and its ")}. The official logs are published about a month after the fact.
     </p>
   );

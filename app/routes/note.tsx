@@ -6,6 +6,9 @@ import type { Route } from "./+types/note";
 import { formatDate, formatTime, torontoDateTime } from "~/lib/format";
 import { getNote } from "~/server/notes";
 import { CopyLink } from "~/components/CopyLink";
+import { TtcLogo } from "~/components/icons";
+import { RouteBadge } from "~/components/RouteBadge";
+import type { Mode } from "~/lib/lines";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const note = await getNote(env.DB, params.id);
@@ -19,7 +22,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Note not found · TTC Late Note" }];
   const { note } = loaderData;
   const title = `A note regarding ${note.from_name}'s lateness`;
-  const description = `An official apology to ${note.to_name}, from the Late Note Division.`;
+  const description = `An apology to ${note.to_name}, from the Late Note Division.`;
   return [
     { title },
     { name: "description", content: description },
@@ -52,71 +55,91 @@ export default function NotePage({ loaderData }: Route.ComponentProps) {
 
 function Letter({ note }: { note: Route.ComponentProps["loaderData"]["note"] }) {
   const written = formatDate(torontoDateTime(note.created_at).date);
-  const from = <Filled>{note.from_name}</Filled>;
+  const mode = note.mode as Mode;
+  const route = <RouteBadge mode={mode} route={note.route} name={note.line_name} />;
 
   return (
-    <article className="letter">
+    <article className="paper letter">
       <header className="letterhead">
-        <p className="letterhead-name">Tardy Toronto Collective</p>
-        <p>Late Note Division</p>
+        <TtcLogo className="letterhead-logo" />
+        <div className="letterhead-address">
+          <p>Late Note Division</p>
+          <p>1900 Yonge Street</p>
+          <p>Toronto, Ontario M4S 1Z2</p>
+        </div>
       </header>
 
-      <p className="letter-date">{written}</p>
+      <div className="letter-meta">
+        <p>File no. LN-{note.id.toUpperCase()}</p>
+        <p>{written}</p>
+      </div>
 
-      <p>
-        Dear <Filled>{note.to_name}</Filled>,
+      <p className="letter-re">
+        Re: Lateness of <Blank>{note.from_name}</Blank> to <Blank>{note.event}</Blank>
       </p>
 
       <p>
-        Please accept our sincere apologies for making {from} late for <Filled>{note.event}</Filled>.
+        Dear <Blank>{note.to_name}</Blank>,
       </p>
+
+      <p>Please accept the sincere apologies of the TTC.</p>
 
       {note.source === "delay" ? (
         <p>
-          Our records show that on {formatDate(note.date)}, at {formatTime(note.time)}, {note.mode} service on{" "}
-          {note.line_name} near {note.location} was delayed by {note.minutes} minutes due to {note.cause}.
+          Our records show that on {formatDate(note.date)} at {formatTime(note.time)}, {route} {mode} service near{" "}
+          {note.location} was delayed {note.minutes} minutes due to {note.cause}.
         </p>
       ) : (
         <p>
-          Our records show that on {formatDate(note.date)}, service on {note.line_name} was disrupted due to{" "}
-          {note.cause}. Our service alert at the time read: <q>{note.details}</q>
+          Our records show that on {formatDate(note.date)}, {route} service was disrupted due to {note.cause}. Our
+          service alert at the time read: <q>{note.details}</q>
         </p>
       )}
 
       <p>
-        {from} did everything right. They left on time and put their faith in public transit. That faith was,
+        <Blank>{note.from_name}</Blank> left on time and put their faith in public transit. That faith was,
         regrettably, misplaced.
       </p>
 
-      <p>We hope you can find it in your heart to forgive them. If anyone is to blame, it is us.</p>
+      <p>We hope you can forgive them. If anyone is to blame, it is us.</p>
 
-      <p className="signoff">Sincerely,</p>
-      <p className="signature" aria-hidden="true">
-        A. Pology
-      </p>
-      <p>
-        A. Pology
-        <br />
-        Director, Late Note Division
-        <br />
-        Tardy Toronto Collective
-      </p>
+      <div className="signoff">
+        <p>Sincerely,</p>
+        <p className="signature" aria-hidden="true">
+          A. Pology
+        </p>
+        <p>
+          A. Pology
+          <br />
+          Director, Late Note Division
+        </p>
+        <Stamp date={written} />
+      </div>
 
       <footer className="letter-footnote">
         <p>
-          Reference: {note.source === "delay" ? "TTC delay log" : "TTC service alert"} · Official cause: “
+          Official cause, per the {note.source === "delay" ? "TTC delay log" : "TTC service alert"}: “
           {note.cause_official}”
         </p>
         <p>
-          P.S. This note is based on public TTC records. We can confirm the delay happened. We can't confirm{" "}
-          {note.from_name} was on board. Forgive accordingly.
+          We can confirm the delay happened. We can't confirm {note.from_name} was on board. Forgive accordingly.
         </p>
+        <p className="form-code">Form LN-1</p>
       </footer>
     </article>
   );
 }
 
-// Text the person filled in, shown in handwriting as if on a form letter.
-function Filled({ children }: { children: React.ReactNode }) {
-  return <span className="filled">{children}</span>;
+// What the person filled in, handwritten into a blank.
+function Blank({ children }: { children: React.ReactNode }) {
+  return <span className="blank-filled">{children}</span>;
+}
+
+function Stamp({ date }: { date: string }) {
+  return (
+    <div className="stamp" aria-label={`Stamped excused, ${date}`}>
+      <span className="stamp-big">Excused</span>
+      <span className="stamp-small">Late Note Division · {date}</span>
+    </div>
+  );
 }

@@ -104,6 +104,20 @@ export async function findIncident(db: D1Database, ref: string, date: string): P
   return null;
 }
 
+// The most recent official delay of 15 minutes or more, for the home page.
+export async function latestDelay(db: D1Database) {
+  const row = await db
+    .prepare(
+      `SELECT ${DELAY_COLUMNS}
+       FROM delays d LEFT JOIN delay_codes c ON c.code = d.code
+       WHERE d.min_delay >= 15
+       ORDER BY d.date DESC, d.time DESC
+       LIMIT 1`,
+    )
+    .first<DelayRow>();
+  return row ? delayToIncident(row) : null;
+}
+
 // What dates we have data for, so the form can say so.
 export async function coverage(db: D1Database) {
   const row = await db

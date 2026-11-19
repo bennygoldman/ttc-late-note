@@ -18,6 +18,26 @@ export const SUBWAY_NAMES: Record<string, string> = {
   "6": "Line 6 Finch West",
 };
 
+// Official line colours (text colour is black only on Line 1's yellow).
+export const SUBWAY_COLORS: Record<string, { background: string; text: string }> = {
+  "1": { background: "#f8c302", text: "#000" },
+  "2": { background: "#16a753", text: "#fff" },
+  "4": { background: "#b32078", text: "#fff" },
+  "5": { background: "#f87005", text: "#fff" },
+  "6": { background: "#8a999a", text: "#fff" },
+};
+
+// 300-series routes are the Blue Night Network.
+export function isNightRoute(route: string) {
+  return /^3\d\d$/.test(route);
+}
+
+// The name without its number: 'Line 1 Yonge-University' -> 'Yonge-University',
+// '504 King' -> 'King', 'Route 59' -> ''.
+export function routeLabel(lineName: string) {
+  return lineName.replace(/^(Line \d+|Route \d+|\d+)\s*/, "");
+}
+
 // Route number for an official-log line. Some subway rows name two lines
 // ('YU/BD'); we file those under the first.
 export function routeFromDelayLine(mode: Mode, line: string) {

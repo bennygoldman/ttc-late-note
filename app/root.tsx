@@ -1,11 +1,15 @@
 import { isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import type { Route } from "./+types/root";
 import stylesheet from "./app.css?url";
+import { TtcLogo } from "./components/icons";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-  { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Caveat:wght@500&display=swap" },
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Reenie+Beanie&display=swap",
+  },
   { rel: "stylesheet", href: stylesheet },
 ];
 
@@ -21,14 +25,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <header className="site-header">
           <Link to="/" className="site-name">
-            TTC Late Note
+            <TtcLogo className="site-logo" />
+            Late Note Division
           </Link>
         </header>
         {children}
         <footer className="site-footer">
-          <p>
-            A parody by the Tardy Toronto Collective. Not affiliated with the Toronto Transit Commission.
-          </p>
+          <p>A parody. TTC here means the Tardy Toronto Collective, not the Toronto Transit Commission.</p>
           <p>
             Delay records from{" "}
             <a href="https://open.toronto.ca/dataset/ttc-subway-delay-data/">City of Toronto Open Data</a> and{" "}
