@@ -77,9 +77,14 @@ Run the second one repeatedly (about 55 times) to load everything since January 
 
 ## Deploying
 
-1. `npx wrangler d1 create ttc-late-note` and put the returned `database_id` in `wrangler.jsonc`.
-2. `npm run db:migrate:remote`
-3. `npm run deploy`
+The database already exists (its id is in `wrangler.jsonc`). To deploy:
 
-The cron jobs start on their own after deploying. The initial import of about 180,000 rows takes
-a couple of days of hourly runs on the free plan, which allows 100,000 database row writes per day.
+```sh
+npx wrangler login         # once per machine
+npm run db:migrate:remote  # only when there's a new migration
+npm run deploy
+```
+
+Live at https://ttc-late-note.ttc-late-note.workers.dev. The cron jobs run on their own once deployed.
+The initial import of about 180,000 rows takes a couple of days of hourly runs on the free plan,
+which allows 100,000 database row writes per day.

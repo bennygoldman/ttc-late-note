@@ -9,8 +9,7 @@
     {
       "binding": "DB",
       "database_name": "ttc-late-note",
-      // Replace with the real id from `wrangler d1 create ttc-late-note` before deploying.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "6f8017f9-6d94-4be2-8bd7-fbe6342cc68f",
       "migrations_dir": "migrations"
     }
   ],
