@@ -1,41 +1,30 @@
-import { env } from "cloudflare:workers";
-import type { Route } from "./+types/home";
+import { Link } from "react-router";
 
 export function meta() {
-  return [{ title: "TTC Late Note" }];
+  return [
+    { title: "TTC Late Note" },
+    { name: "description", content: "Late because of the TTC? Get an official apology for whoever you kept waiting." },
+  ];
 }
 
-// Temporary: a status page showing what data has been loaded.
-export async function loader() {
-  const { results: delays } = await env.DB.prepare(
-    `SELECT mode, COUNT(*) AS rows, MIN(date) AS first_day, MAX(date) AS last_day
-     FROM delays GROUP BY mode ORDER BY mode`,
-  ).all<{ mode: string; rows: number; first_day: string; last_day: string }>();
-
-  const alerts = await env.DB.prepare(
-    `SELECT COUNT(*) AS rows, MIN(first_seen) AS first_seen, MAX(last_seen) AS last_seen FROM alerts`,
-  ).first<{ rows: number; first_seen: string | null; last_seen: string | null }>();
-
-  return { delays, alerts };
-}
-
-export default function Home({ loaderData }: Route.ComponentProps) {
-  const { delays, alerts } = loaderData;
+export default function Home() {
   return (
-    <main>
-      <h1>TTC Late Note</h1>
-      <h2>Official delay logs</h2>
-      <ul>
-        {delays.map((d) => (
-          <li key={d.mode}>
-            {d.mode}: {d.rows} delays, {d.first_day} to {d.last_day}
-          </li>
-        ))}
-      </ul>
-      <h2>Live alerts recorded</h2>
-      <p>
-        {alerts?.rows ?? 0} alerts, seen between {alerts?.first_seen ?? "–"} and {alerts?.last_seen ?? "–"}
+    <main className="page">
+      <h1 className="hero">Late because of the TTC?</h1>
+      <p className="lead">
+        We're sorry. Tell us when and where your trip went wrong, and we'll find the delay in the TTC's own
+        records and write an apology to whoever you kept waiting.
       </p>
+
+      <ol className="steps">
+        <li>Pick the day and the line you were on.</li>
+        <li>Choose the delay that got you.</li>
+        <li>Get a signed letter to send with a link.</li>
+      </ol>
+
+      <Link to="/new" className="button">
+        Get a late note
+      </Link>
     </main>
   );
 }

@@ -17,16 +17,39 @@ _A parody. Not affiliated with the Toronto Transit Commission._
 
 ```
 app/
-  root.tsx            page shell
+  root.tsx            page shell: header, footer, error page
   routes.ts           list of pages
-  routes/             one file per page
+  routes/
+    home.tsx          /          landing page
+    new.tsx           /new       pick a day, line and delay; write the note
+    note.tsx          /n/:id     the letter (the page people share)
+    status.tsx        /status    what data has been loaded
+  components/         small shared UI pieces
+  lib/
+    lines.ts          matches line names between the two data sources
+    causes.ts         turns TTC cause codes into plain English
+    format.ts         dates, times and names
   server/
     opendata.ts       imports official delay logs from Toronto Open Data
     alerts.ts         records TTC live service alerts
+    incidents.ts      finds delays and alerts for a day, in one shape
+    notes.ts          saves and loads notes
+  app.css             all the styles
 workers/app.ts        Worker entry: handles web requests and scheduled jobs
 migrations/           database schema
 wrangler.jsonc        Cloudflare config: database binding and cron schedules
 ```
+
+## How a note is made
+
+1. On `/new`, you pick a day and a vehicle type. We list the lines that had a recorded
+   incident that day, from either source.
+2. You pick your line and the incident that made you late, and enter who the note is for.
+3. We save the note with its own copy of the incident details, so the letter never changes,
+   and send you to `/n/<id>` to share it.
+
+Each choice on `/new` is kept in the URL, so the page needs no client-side state and works
+without JavaScript.
 
 ## Where the data comes from
 
