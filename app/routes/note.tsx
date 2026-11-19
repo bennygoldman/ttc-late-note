@@ -91,9 +91,16 @@ function Letter({ note }: { note: Route.ComponentProps["loaderData"]["note"] }) 
         </p>
       ) : (
         <p>
-          Our records show that on {formatDate(note.date)}, {route} service was disrupted due to{" "}
-          <Struck>{note.cause}</Struck>. Our
-          service alert at the time read: <q>{note.details}</q>
+          Our records show that on {formatDate(note.date)}
+          {note.time && ` at ${formatTime(note.time)}`}, {route} service {note.effect}
+          {note.location && ` ${note.location}`}
+          {note.minutes ? (
+            <>
+              {" "}
+              for <Struck>about {note.minutes} minutes</Struck>
+            </>
+          ) : null}{" "}
+          due to <Struck>{note.cause}</Struck>.
         </p>
       )}
 

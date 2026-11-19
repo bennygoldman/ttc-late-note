@@ -11,14 +11,15 @@ export type Incident = {
   sourceId: string;
   mode: Mode;
   date: string; // 'YYYY-MM-DD', Toronto time
-  time: string; // 'HH:MM', Toronto time
+  time: string; // 'HH:MM', Toronto time; '' if it started on an earlier day
   route: string; // '504'
   lineName: string; // '504 King'
-  location: string; // 'King and Parliament'
+  location: string; // 'King and Parliament', or for alerts 'between Jane and Keele stations'
+  effect: string; // alerts only: 'was suspended', 'was on a detour'; '' for official delays
   cause: string; // 'a collision'
   causeOfficial: string; // 'TTC COLLISION – PROPERTY DAMAGE'
-  minutes: number | null;
-  details: string; // the alert text, '' for official delays
+  minutes: number | null; // official delay length, or roughly how long an alert lasted
+  details: string; // the alert's own text, kept for reference but never shown
   summary: string; // one line for pick lists
 };
 
@@ -39,17 +40,22 @@ type AlertRow = {
   route: string;
   route_type: string;
   header_text: string;
+  effect: string;
+  effect_desc: string;
   cause: string;
   cause_desc: string;
-  effect_desc: string;
   stop_start: string;
   stop_end: string;
   active_start: string | null;
   first_seen: string;
   last_seen: string;
+  resolved_at: string | null;
 };
 
 const DELAY_COLUMNS = `d.id, d.mode, d.date, d.time, d.line, d.station, d.code, d.min_delay, c.description`;
+
+// Alerts that don't describe a disruption.
+const NOT_DISRUPTIONS = ["NO_EFFECT", "ADDITIONAL_SERVICE", "OTHER_EFFECT", "UNKNOWN_EFFECT"];
 
 // Every incident for one mode on one day, sorted by time.
 export async function incidentsOn(db: D1Database, date: string, mode: Mode) {
@@ -69,12 +75,14 @@ export async function incidentsOn(db: D1Database, date: string, mode: Mode) {
       `SELECT * FROM alerts
        WHERE lower(route_type) = ?
          AND COALESCE(active_start, first_seen) < date(?, '+2 days')
-         AND last_seen > date(?, '-1 day')`,
+         AND COALESCE(resolved_at, last_seen) > date(?, '-1 day')`,
     )
     .bind(mode, date, date)
     .all<AlertRow>();
 
-  const fromAlerts = alerts.filter((a) => wasActiveOn(a, date)).map((a) => alertToIncident(a, mode, date));
+  const fromAlerts = alerts
+    .filter((a) => isDisruption(a) && wasActiveOn(a, date))
+    .map((a) => alertToIncident(a, mode, date));
   const fromDelays = delays.map(delayToIncident);
 
   return [...fromDelays, ...fromAlerts]
@@ -97,7 +105,7 @@ export async function findIncident(db: D1Database, ref: string, date: string): P
 
   if (source === "alert") {
     const row = await db.prepare(`SELECT * FROM alerts WHERE id = ?`).bind(id).first<AlertRow>();
-    if (!row || !wasActiveOn(row, date)) return null;
+    if (!row || !isDisruption(row) || !wasActiveOn(row, date)) return null;
     return alertToIncident(row, row.route_type.toLowerCase() as Mode, date);
   }
 
@@ -135,25 +143,26 @@ export async function coverage(db: D1Database) {
   };
 }
 
-// --- Converting rows ---
+// --- Official delays ---
 
 function delayToIncident(row: DelayRow): Incident | null {
   const route = routeFromDelayLine(row.mode, row.line);
   if (!route) return null;
 
-  const name = lineName(row.mode, route, row.line);
+  const ref = `delay:${row.id}`;
   const location = titleCase(row.station);
   return {
-    ref: `delay:${row.id}`,
+    ref,
     source: "delay",
     sourceId: String(row.id),
     mode: row.mode,
     date: row.date,
     time: row.time,
     route,
-    lineName: name,
+    lineName: lineName(row.mode, route, row.line),
     location,
-    cause: causeFromDelay(row.code, row.description),
+    effect: "",
+    cause: causeFromDelay(row.code, row.description, ref),
     causeOfficial: row.description ?? row.code,
     minutes: row.min_delay,
     details: "",
@@ -161,18 +170,44 @@ function delayToIncident(row: DelayRow): Incident | null {
   };
 }
 
+// --- Live alerts ---
+
+// How each kind of alert reads in the letter: '<route> service was suspended ...'
+const EFFECTS: Record<string, string> = {
+  NO_SERVICE: "was suspended",
+  REDUCED_SERVICE: "was reduced",
+  SIGNIFICANT_DELAYS: "was significantly delayed",
+  DETOUR: "was on a detour",
+  MODIFIED_SERVICE: "was disrupted",
+  STOP_MOVED: "was disrupted",
+};
+
 function alertToIncident(row: AlertRow, mode: Mode, date: string): Incident | null {
   const route = routeFromAlertRoute(row.route);
   if (!route) return null;
 
-  // If the alert started before this day, call it "in effect" from midnight.
+  // If the alert started before this day, there's no start time to give.
   const start = torontoDateTime(row.active_start ?? row.first_seen);
-  const time = start.date === date ? start.time : "00:00";
+  const time = start.date === date ? start.time : "";
 
-  const location = [row.stop_start, row.stop_end].filter(Boolean).join(" to ");
-  const message = row.header_text.split(":").slice(1).join(":").trim() || row.header_text;
+  const ref = `alert:${row.id}`;
+  const effect = /closure/i.test(row.effect_desc)
+    ? "was closed"
+    : row.effect_desc === "Reduced Speed Zone"
+      ? "ran slower than usual"
+      : (EFFECTS[row.effect] ?? "was disrupted");
+  const location = stretch(mode, row.stop_start, row.stop_end);
+  const minutes = row.resolved_at ? roughMinutes(row.first_seen, row.resolved_at) : null;
+
+  const summary = [
+    time ? formatTime(time) : "Ongoing",
+    `: service ${effect.replace(/^was /, "")}`,
+    location && ` ${location}`,
+    minutes && `, about ${minutes} min`,
+  ].join("");
+
   return {
-    ref: `alert:${row.id}`,
+    ref,
     source: "alert",
     sourceId: row.id,
     mode,
@@ -181,18 +216,40 @@ function alertToIncident(row: AlertRow, mode: Mode, date: string): Incident | nu
     route,
     lineName: lineName(mode, route, row.header_text),
     location,
-    cause: causeFromAlert(row.cause),
-    causeOfficial: row.cause_desc || row.effect_desc || row.cause,
-    minutes: null,
+    effect,
+    cause: causeFromAlert(row.cause, row.cause_desc, ref),
+    causeOfficial: row.cause_desc || row.cause,
+    minutes,
     details: row.header_text,
-    summary: `${time === "00:00" ? "All day" : formatTime(time)}: ${message}`,
+    summary,
   };
 }
 
-// Whether an alert was active at some point during a Toronto day. We count it
-// as active from its start time until the last time our poller saw it.
+function isDisruption(alert: AlertRow) {
+  return !NOT_DISRUPTIONS.includes(alert.effect);
+}
+
+// Whether an alert was active at some point during a Toronto day: from its
+// start until it was resolved, or until the last time our poller saw it.
 function wasActiveOn(alert: AlertRow, date: string) {
   const start = torontoDateTime(alert.active_start ?? alert.first_seen).date;
-  const end = torontoDateTime(alert.last_seen).date;
+  const end = torontoDateTime(alert.resolved_at ?? alert.last_seen).date;
   return start <= date && date <= end;
+}
+
+// 'between Victoria Park and Kennedy stations', 'between Dundas St West at
+// Spadina Ave and Dundas St West at Sterling Rd'. Bus bay numbers are dropped.
+function stretch(mode: Mode, from: string, to: string) {
+  const clean = (stop: string) => stop.replace(/\s*(at\s+)?(Bus\s+)?Bay\s+\d+$/i, "").trim();
+  const [a, b] = [clean(from), clean(to)];
+  if (!a) return "";
+  if (!b || a === b) return `near ${a}`;
+  return mode === "subway" ? `between ${a} and ${b} stations` : `between ${a} and ${b}`;
+}
+
+// Minutes between two timestamps, to the nearest 5. Our poller checks every
+// 5 minutes, so anything finer would be made up.
+function roughMinutes(from: string, to: string) {
+  const minutes = (Date.parse(to) - Date.parse(from)) / 60000;
+  return Math.max(5, Math.round(minutes / 5) * 5);
 }

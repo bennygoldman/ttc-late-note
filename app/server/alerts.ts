@@ -32,8 +32,12 @@ export async function syncAlerts(db: D1Database) {
   const feed = (await response.json()) as { routes: SourceAlert[] };
   const now = new Date().toISOString();
 
-  // Insert new alerts; for ones we've seen before, refresh their details
-  // (the TTC edits alerts as things change) and push last_seen forward.
+  // Insert new alerts. For ones we've seen before, refresh their details (the
+  // TTC edits alerts as things change) and push last_seen forward.
+  //
+  // When a disruption ends, the TTC changes the same alert to "Regular service
+  // has resumed" (effect NO_EFFECT). Then we keep the disruption's details as
+  // they were and record the time it ended in resolved_at.
   const upsert = db.prepare(
     `INSERT INTO alerts (
        id, route, route_type, alert_type, header_text, effect, effect_desc,
@@ -41,18 +45,21 @@ export async function syncAlerts(db: D1Database) {
        active_start, active_end, first_seen, last_seen
      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (id) DO UPDATE SET
-       header_text  = excluded.header_text,
-       effect       = excluded.effect,
-       effect_desc  = excluded.effect_desc,
-       cause        = excluded.cause,
-       cause_desc   = excluded.cause_desc,
-       severity     = excluded.severity,
-       direction    = excluded.direction,
-       stop_start   = excluded.stop_start,
-       stop_end     = excluded.stop_end,
-       active_start = excluded.active_start,
-       active_end   = excluded.active_end,
-       last_seen    = excluded.last_seen`,
+       last_seen   = excluded.last_seen,
+       resolved_at = CASE WHEN excluded.effect = 'NO_EFFECT'
+                          THEN COALESCE(alerts.resolved_at, excluded.last_seen)
+                          ELSE NULL END,
+       header_text  = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.header_text  ELSE excluded.header_text  END,
+       effect       = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.effect       ELSE excluded.effect       END,
+       effect_desc  = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.effect_desc  ELSE excluded.effect_desc  END,
+       cause        = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.cause        ELSE excluded.cause        END,
+       cause_desc   = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.cause_desc   ELSE excluded.cause_desc   END,
+       severity     = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.severity     ELSE excluded.severity     END,
+       direction    = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.direction    ELSE excluded.direction    END,
+       stop_start   = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.stop_start   ELSE excluded.stop_start   END,
+       stop_end     = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.stop_end     ELSE excluded.stop_end     END,
+       active_start = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.active_start ELSE excluded.active_start END,
+       active_end   = CASE WHEN excluded.effect = 'NO_EFFECT' THEN alerts.active_end   ELSE excluded.active_end   END`,
   );
 
   const alerts = feed.routes ?? [];
@@ -85,8 +92,20 @@ export async function syncAlerts(db: D1Database) {
   return { alerts: `recorded ${alerts.length} active alerts` };
 }
 
-// The feed uses '0001-01-01T00:00:00Z' to mean "no time given".
+// Times in the feed are Toronto local time, even though they end in "Z"
+// (checked against the feed's own lastUpdated, which runs 4–5 hours behind
+// UTC). '0001-01-01T00:00:00Z' means "no time given".
 function toTimestamp(value: string | undefined) {
   if (!value || value.startsWith("0001-")) return null;
-  return new Date(value).toISOString();
+  const wallClock = Date.parse(value.replace(/Z$/, "") + "Z");
+  return new Date(wallClock - torontoOffsetMinutes(wallClock) * 60000).toISOString();
+}
+
+// Toronto's offset from UTC in minutes at a given moment: -300 (EST) or -240 (EDT).
+function torontoOffsetMinutes(timestamp: number) {
+  const name = new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", timeZoneName: "longOffset" })
+    .formatToParts(timestamp)
+    .find((p) => p.type === "timeZoneName")!.value; // 'GMT-05:00'
+  const [, sign, hours, minutes] = name.match(/([+-])(\d\d):(\d\d)/)!;
+  return (sign === "-" ? -1 : 1) * (Number(hours) * 60 + Number(minutes));
 }

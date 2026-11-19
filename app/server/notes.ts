@@ -13,6 +13,7 @@ export type Note = {
   route: string;
   line_name: string;
   location: string;
+  effect: string;
   cause: string;
   cause_official: string;
   minutes: number | null;
@@ -30,8 +31,8 @@ export async function createNote(
       `INSERT INTO notes (
          id, created_at, from_name, to_name, event,
          source, source_id, mode, date, time, route, line_name, location,
-         cause, cause_official, minutes, details
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         effect, cause, cause_official, minutes, details
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       id,
@@ -47,6 +48,7 @@ export async function createNote(
       incident.route,
       incident.lineName,
       incident.location,
+      incident.effect,
       incident.cause,
       incident.causeOfficial,
       incident.minutes,
