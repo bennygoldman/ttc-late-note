@@ -23,7 +23,7 @@ const RULES: [RegExp, Phrase][] = [
 
   // Alarms and false alarms
   [/PAA.*NO TROUBLE|ALARM.*NO TROUBLE/, "a passenger alarm that turned out to be nothing"],
-  [/EQUIPMENT.*NO TROUBLE/, "an equipment fault"],
+  [/EQUIPMENT.*NO TROUBLE/, "faulty equipment"],
 
   // People
   [/MEDICAL AID REFUSED|TRANSPORTATION DECLINED|MEDICAL AID DECLINED/, "a sick passenger who refused help"],
