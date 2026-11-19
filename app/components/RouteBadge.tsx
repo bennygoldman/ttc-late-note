@@ -1,29 +1,24 @@
-// A route the way TTC signs show it: a coloured bullet for subway lines, a red
-// box for bus and streetcar routes, and blue with a moon for night routes.
+// A route the way TTC maps and signs show it: the vehicle, then the route
+// number in its badge colour (a round marker for subway lines).
 
-import { isNightRoute, routeLabel, SUBWAY_COLORS, type Mode } from "~/lib/lines";
-import { MoonIcon } from "./icons";
+import { routeBadgeStyle, routeLabel, type Mode } from "~/lib/lines";
+import { ModeIcon } from "./icons";
 
 export function RouteBadge({ mode, route, name }: { mode: Mode; route: string; name?: string }) {
+  const style = routeBadgeStyle(mode, route);
   const label = name ? routeLabel(name) : "";
 
-  if (mode === "subway") {
-    const color = SUBWAY_COLORS[route] ?? { background: "#000", text: "#fff" };
-    return (
-      <span className="route">
-        <span className="route-bullet" style={{ background: color.background, color: color.text }}>
-          {route}
-        </span>
-        {label && <span className="route-name">{label}</span>}
-      </span>
-    );
-  }
-
-  const night = isNightRoute(route);
   return (
     <span className="route">
-      <span className={night ? "route-number night" : "route-number"}>
-        {night && <MoonIcon className="route-moon" />}
+      <ModeIcon mode={mode} className="route-icon" />
+      <span
+        className={mode === "subway" ? "route-number line" : "route-number"}
+        style={{
+          background: style.background ?? "transparent",
+          color: style.color,
+          boxShadow: style.border ? `inset 0 0 0 1.5px ${style.border}` : undefined,
+        }}
+      >
         {route}
       </span>
       {label && <span className="route-name">{label}</span>}

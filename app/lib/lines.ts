@@ -3,6 +3,7 @@
 //   Official logs: 'YU', 'BD', 'SHP', '504 KING', '54 LAWRENCE EAST'
 //   Live alerts:   '1', '504', '59B'
 
+import styles from "~/data/ttc-route-styles.json";
 import { titleCase } from "./format";
 
 export type Mode = "subway" | "streetcar" | "bus";
@@ -18,18 +19,24 @@ export const SUBWAY_NAMES: Record<string, string> = {
   "6": "Line 6 Finch West",
 };
 
-// Official line colours (text colour is black only on Line 1's yellow).
-export const SUBWAY_COLORS: Record<string, { background: string; text: string }> = {
-  "1": { background: "#f8c302", text: "#000" },
-  "2": { background: "#16a753", text: "#fff" },
-  "4": { background: "#b32078", text: "#fff" },
-  "5": { background: "#f87005", text: "#fff" },
-  "6": { background: "#8a999a", text: "#fff" },
-};
+// Route badge colours, from tpl-passport's ttc-route-styles.json: red for
+// regular bus and streetcar routes; outlined for limited-service, Blue Night
+// (300s) and community (400s) routes; green for Express (900s); each subway
+// line in its own colour.
+export type BadgeStyle = { background?: string; color: string; border?: string };
 
-// 300-series routes are the Blue Night Network.
-export function isNightRoute(route: string) {
-  return /^3\d\d$/.test(route);
+type Rule = { match: "limited"; style: BadgeStyle } | { range: number[]; style: BadgeStyle };
+
+export function routeBadgeStyle(mode: Mode, route: string): BadgeStyle {
+  if (mode === "subway" || route in styles.subway.lines) {
+    const line = styles.subway.lines[route as keyof typeof styles.subway.lines];
+    return { ...styles.subway.default, ...line };
+  }
+  const n = Number(route);
+  const rule = (styles.busStreetcar.rules as Rule[]).find((r) =>
+    "match" in r ? styles.busStreetcar.limited.includes(n) : n >= r.range[0] && n <= r.range[1],
+  );
+  return rule ? rule.style : styles.busStreetcar.default;
 }
 
 // The name without its number: 'Line 1 Yonge-University' -> 'Yonge-University',
