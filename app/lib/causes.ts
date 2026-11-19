@@ -11,7 +11,7 @@ type Phrase = string | string[];
 const RULES: [RegExp, Phrase][] = [
   // Security
   [/SUSPICIOUS PACKAGE|BOMB/, "a suspicious package"],
-  [/ASSAULT|ASSUALT|ROBBERY/, "a security incident"],
+  [/ASSAULT|ASSUALT|ROBBERY|SECURITY INCIDENT/, "a security incident"],
   [/DISORDERLY/, ["a disorderly passenger", "a passenger who would not settle down"]],
   [/POLICE|\bTPS\b/, "a police investigation"],
   [/UNAUTHORIZED AT TRACK|PERSON ON TRACK/, "a person on the tracks"],
