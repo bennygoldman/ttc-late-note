@@ -87,11 +87,12 @@ function Letter({ note }: { note: Route.ComponentProps["loaderData"]["note"] }) 
       {note.source === "delay" ? (
         <p>
           Our records show that on {formatDate(note.date)} at {formatTime(note.time)}, {route} {mode} service near{" "}
-          {note.location} was delayed {note.minutes} minutes due to {note.cause}.
+          {note.location} was delayed <Struck>{note.minutes} minutes</Struck> due to <Struck>{note.cause}</Struck>.
         </p>
       ) : (
         <p>
-          Our records show that on {formatDate(note.date)}, {route} service was disrupted due to {note.cause}. Our
+          Our records show that on {formatDate(note.date)}, {route} service was disrupted due to{" "}
+          <Struck>{note.cause}</Struck>. Our
           service alert at the time read: <q>{note.details}</q>
         </p>
       )}
@@ -128,6 +129,11 @@ function Letter({ note }: { note: Route.ComponentProps["loaderData"]["note"] }) 
       </footer>
     </article>
   );
+}
+
+// Typed twice over, the way typists made a word darker: here, the facts the apology rests on.
+function Struck({ children }: { children: React.ReactNode }) {
+  return <span className="struck">{children}</span>;
 }
 
 // What the person filled in, handwritten into a blank.
