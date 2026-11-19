@@ -22,8 +22,8 @@ const RULES: [RegExp, Phrase][] = [
   [/ESCL|ELEV|STAIRWAY/, "an escalator or elevator incident"],
 
   // Alarms and false alarms
-  [/PAA.*NO TROUBLE|ALARM.*NO TROUBLE/, "a false alarm"],
-  [/EQUIPMENT.*NO TROUBLE/, "a fault no one could find"],
+  [/PAA.*NO TROUBLE|ALARM.*NO TROUBLE/, "a passenger alarm that turned out to be nothing"],
+  [/EQUIPMENT.*NO TROUBLE/, "an equipment fault"],
 
   // People
   [/MEDICAL AID REFUSED|TRANSPORTATION DECLINED|MEDICAL AID DECLINED/, "a sick passenger who refused help"],
@@ -46,10 +46,10 @@ const RULES: [RegExp, Phrase][] = [
   // Operations
   [/NO OPERATOR|NO COLLECTOR|CREW/, ["a staffing shortage", "a missing operator"]],
   [/DIVERSION/, "a diversion"],
-  [/SHUTTLE/, "shuttle duty"],
+  [/SHUTTLE/, "a replacement shuttle"],
   [/SWITCH VIOLATION|VIOLATED SWITCH/, "a switching error"],
   [/VIOLATED SIGNAL|OVERSHOT|OVERSPEED/, "an operator error"],
-  [/SCHEDULE|LATE ENTERING|LATE VEHICLE/, "falling behind schedule"],
+  [/SCHEDULE|LATE ENTERING|LATE VEHICLE/, "trouble keeping to the schedule"],
   [/CLOSURE/, "a service closure"],
 
   // The vehicle
