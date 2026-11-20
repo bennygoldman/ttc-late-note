@@ -54,6 +54,7 @@ type SourceRow = {
 
 export async function syncOpenData(db: D1Database) {
   const summary: Record<string, string> = {};
+  let finishedCatchingUp = false;
 
   for (const mode of MODES) {
     const lastSynced = await getLastSyncedDate(db, mode);
@@ -73,12 +74,13 @@ export async function syncOpenData(db: D1Database) {
       rows += records.length;
     }
     summary[mode] = `imported ${rows} rows for ${days[0]} to ${days.at(-1)}`;
+    if (days.at(-1) === newestPublished) finishedCatchingUp = true;
   }
 
-  // Refresh the cause-code list only when there was new data to import:
-  // every upsert counts against the daily write limit, even if nothing changed.
-  const importedAnything = Object.values(summary).some((line) => line.startsWith("imported"));
-  if (importedAnything) await syncCodes(db);
+  // Every upsert counts against the daily write limit, even if nothing
+  // changed, so refresh the cause-code list only when it's empty or a new
+  // monthly release has just been fully imported.
+  if (finishedCatchingUp || (await isEmpty(db, "delay_codes"))) await syncCodes(db);
   return { openData: summary };
 }
 
@@ -156,6 +158,11 @@ async function syncCodes(db: D1Database) {
     });
     await db.batch(codes.map((c) => upsert.bind(clean(c.CODE), clean(c.DESCRIPTION))));
   }
+}
+
+async function isEmpty(db: D1Database, table: "delay_codes") {
+  const row = await db.prepare(`SELECT 1 FROM ${table} LIMIT 1`).first();
+  return row === null;
 }
 
 async function getLastSyncedDate(db: D1Database, mode: Mode) {
