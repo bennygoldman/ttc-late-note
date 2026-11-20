@@ -75,7 +75,10 @@ export async function syncOpenData(db: D1Database) {
     summary[mode] = `imported ${rows} rows for ${days[0]} to ${days.at(-1)}`;
   }
 
-  await syncCodes(db);
+  // Refresh the cause-code list only when there was new data to import:
+  // every upsert counts against the daily write limit, even if nothing changed.
+  const importedAnything = Object.values(summary).some((line) => line.startsWith("imported"));
+  if (importedAnything) await syncCodes(db);
   return { openData: summary };
 }
 
