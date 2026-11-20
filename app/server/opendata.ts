@@ -29,11 +29,15 @@ export type Mode = keyof typeof DATASETS;
 const MODES = Object.keys(DATASETS) as Mode[];
 
 // Where to start when the database is empty.
-const FIRST_DAY = "2025-01-01";
+export const FIRST_DAY = "2025-01-01";
 
-// Each day is one request per mode. The Workers free plan allows 50 outgoing
-// requests per run, so keep each run well under that. Hourly runs catch up quickly.
-const MAX_DAYS_PER_MODE = 12;
+// How many days to import per mode in one run. This is limited by the free
+// plan's 100,000 row writes a day: a day of delays is about 280 rows across
+// all modes, and each row costs 2 writes (the row and its unique index).
+// 4 days an hour is about 54,000 writes a day, which leaves room for the
+// alerts poller. A full import from scratch takes about a week; a month of
+// new data takes about 8 hours.
+const MAX_DAYS_PER_MODE = 4;
 
 // A row as the Open Data API returns it.
 type SourceRow = {

@@ -66,12 +66,13 @@ every 5 minutes. That gives us our own history of recent disruptions.
 | Schedule | Job |
 | --- | --- |
 | Every 5 minutes | `syncAlerts`: saves the current TTC alerts and updates `last_seen` on ones already saved |
-| Hourly | `syncOpenData`: imports up to 12 new days per mode, then refreshes the cause-code list |
+| Hourly | `syncOpenData`: imports up to 4 new days per mode, then refreshes the cause-code list |
 
 The Open Data import remembers the last day it finished for each mode
-(`sync_state` table). It stops after 12 days so each run stays within the Workers
-free plan's limit of 50 outgoing requests. A fresh database catches up from
-January 2025 in about 55 runs.
+(`sync_state` table). It stops after 4 days so a day of hourly runs stays within
+the Workers free plan's 100,000 database row writes (each delay costs 2: the row
+and its unique index). A fresh database catches up from January 2025 in about
+a week; each monthly release takes about 8 hours.
 
 ### Quirks in the source data
 
@@ -93,10 +94,10 @@ While the dev server is running, trigger the scheduled jobs by hand:
 
 ```sh
 curl "localhost:5173/cdn-cgi/handler/scheduled?cron=*/5+*+*+*+*"   # record live alerts
-curl "localhost:5173/cdn-cgi/handler/scheduled?cron=17+*+*+*+*"    # import 12 days of delays
+curl "localhost:5173/cdn-cgi/handler/scheduled?cron=17+*+*+*+*"    # import 4 days of delays
 ```
 
-Run the second one repeatedly (about 55 times) to load everything since January 2025.
+Run the second one repeatedly (about 160 times) to load everything since January 2025. Locally there's no write limit.
 
 ## Deploying
 
@@ -109,5 +110,4 @@ npm run deploy
 ```
 
 Live at https://ttc-late-note.ttc-late-note.workers.dev. The cron jobs run on their own once deployed.
-The initial import of about 180,000 rows takes a couple of days of hourly runs on the free plan,
-which allows 100,000 database row writes per day.
+The initial import of about 180,000 rows takes about a week of hourly runs on the free plan.

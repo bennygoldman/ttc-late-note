@@ -4,6 +4,7 @@
 import { causeFromAlert, causeFromDelay } from "~/lib/causes";
 import { formatTime, titleCase, torontoDateTime } from "~/lib/format";
 import { lineName, routeFromAlertRoute, routeFromDelayLine, type Mode } from "~/lib/lines";
+import { FIRST_DAY } from "./opendata";
 
 export type Incident = {
   ref: string; // 'delay:123' or 'alert:80509', used in forms
@@ -113,31 +114,35 @@ export async function findIncident(db: D1Database, ref: string, date: string): P
 }
 
 // The most recent official delay of 15 minutes or more, for the home page.
+// Lookups by date go through the delays index, which starts with mode, so
+// queries name the modes.
 export async function latestDelay(db: D1Database) {
   const row = await db
     .prepare(
       `SELECT ${DELAY_COLUMNS}
        FROM delays d LEFT JOIN delay_codes c ON c.code = d.code
-       WHERE d.min_delay >= 15
-       ORDER BY d.date DESC, d.time DESC
+       WHERE d.mode IN ('subway', 'streetcar', 'bus')
+         AND d.date = (SELECT MIN(last_synced_date) FROM sync_state)
+         AND d.min_delay >= 15
+       ORDER BY d.time DESC
        LIMIT 1`,
     )
     .first<DelayRow>();
   return row ? delayToIncident(row) : null;
 }
 
-// What dates we have data for, so the form can say so.
+// What dates we have data for, so the form can say so. The import runs
+// forward from FIRST_DAY, and sync_state records how far it has got.
 export async function coverage(db: D1Database) {
   const row = await db
     .prepare(
-      `SELECT (SELECT MIN(date) FROM delays) AS delays_from,
-              (SELECT MAX(date) FROM delays) AS delays_to,
+      `SELECT (SELECT MIN(last_synced_date) FROM sync_state) AS delays_to,
               (SELECT MIN(first_seen) FROM alerts) AS alerts_from`,
     )
-    .first<{ delays_from: string | null; delays_to: string | null; alerts_from: string | null }>();
+    .first<{ delays_to: string | null; alerts_from: string | null }>();
 
   return {
-    delaysFrom: row?.delays_from ?? null,
+    delaysFrom: row?.delays_to ? FIRST_DAY : null,
     delaysTo: row?.delays_to ?? null,
     alertsFrom: row?.alerts_from ? torontoDateTime(row.alerts_from).date : null,
   };
