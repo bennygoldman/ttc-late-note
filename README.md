@@ -109,5 +109,5 @@ npm run db:migrate:remote  # only when there's a new migration
 npm run deploy
 ```
 
-Live at https://latenote.to (www redirects to it; the workers.dev address also works). The cron jobs run on their own once deployed.
+Live at https://latenote.to (www redirects to it). The cron jobs run on their own once deployed.
 The initial import of about 180,000 rows takes about a week of hourly runs on the free plan.

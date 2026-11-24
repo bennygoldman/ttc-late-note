@@ -5,8 +5,10 @@
   "main": "./workers/app.ts",
   "observability": { "enabled": true },
 
-  // The site's address. www redirects to it (see workers/app.ts).
-  // The workers.dev address keeps working too.
+  // The site's only address. www redirects to it (see workers/app.ts).
+  // The workers.dev and preview addresses are turned off.
+  "workers_dev": false,
+  "preview_urls": false,
   "routes": [
     { "pattern": "latenote.to", "custom_domain": true },
     { "pattern": "www.latenote.to", "custom_domain": true }
