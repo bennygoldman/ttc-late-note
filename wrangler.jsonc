@@ -5,10 +5,11 @@
   "main": "./workers/app.ts",
   "observability": { "enabled": true },
 
-  // The site's only address. www redirects to it (see workers/app.ts).
-  // The workers.dev and preview addresses are turned off.
+  // The site's address. www redirects to it (see workers/app.ts).
+  // The main workers.dev address is off; preview addresses (from
+  // `npx wrangler preview` on a branch) stay on for testing changes.
   "workers_dev": false,
-  "preview_urls": false,
+  "preview_urls": true,
   "routes": [
     { "pattern": "latenote.to", "custom_domain": true },
     { "pattern": "www.latenote.to", "custom_domain": true }
