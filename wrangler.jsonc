@@ -5,6 +5,13 @@
   "main": "./workers/app.ts",
   "observability": { "enabled": true },
 
+  // The site's address. www redirects to it (see workers/app.ts).
+  // The workers.dev address keeps working too.
+  "routes": [
+    { "pattern": "latenote.to", "custom_domain": true },
+    { "pattern": "www.latenote.to", "custom_domain": true }
+  ],
+
   "d1_databases": [
     {
       "binding": "DB",

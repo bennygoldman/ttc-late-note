@@ -9,6 +9,12 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request) {
+    // One address for the site, so every shared link looks the same.
+    const url = new URL(request.url);
+    if (url.hostname === "www.latenote.to") {
+      url.hostname = "latenote.to";
+      return Response.redirect(url.toString(), 301);
+    }
     return requestHandler(request);
   },
 
