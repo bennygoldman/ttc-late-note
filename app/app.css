@@ -500,17 +500,50 @@ h1 {
     0 0 0.6px rgb(38 35 31 / 0.45);
 }
 
-/* Handwriting on a blank line. */
-.blank-filled {
-  display: inline-block;
+/* A filled-in blank: the value on a rule, with a small caption underneath.
+   The field sits on the text baseline; its caption hangs below and makes
+   room for itself by raising the line's height. */
+.filled {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  vertical-align: baseline;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+
+.filled-value {
+  max-width: 100%;
+  padding: 0 4px;
+  white-space: normal; /* long values (a stretch of road, an occasion) wrap inside their blank */
+  border-bottom: 1px solid var(--paper-ink);
+  text-align: center;
+}
+
+.filled-caption {
+  margin-top: 1px;
+  font: 0.6rem/1.2 var(--typed);
+  color: #6b655b;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+/* Handwriting: what the person filled in. */
+.filled.handwritten .filled-value {
   min-width: 4em;
   padding: 0 6px;
-  border-bottom: 1px solid var(--paper-ink);
   color: var(--pen);
   font: 400 1.75em/1 var(--handwriting);
-  text-align: center;
   text-shadow: none;
   transform: rotate(-1deg);
+}
+
+.letter-footnote .filled-caption {
+  font-size: 0.55rem;
 }
 
 .letter .route {

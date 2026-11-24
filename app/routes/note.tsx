@@ -56,7 +56,11 @@ export default function NotePage({ loaderData }: Route.ComponentProps) {
 function Letter({ note }: { note: Route.ComponentProps["loaderData"]["note"] }) {
   const written = formatDate(torontoDateTime(note.created_at).date);
   const mode = note.mode as Mode;
-  const route = <RouteBadge mode={mode} route={note.route} name={note.line_name} />;
+  const lateParty = (
+    <Field label="late party" handwritten>
+      {note.from_name}
+    </Field>
+  );
 
   return (
     <article className="paper letter">
@@ -70,43 +74,83 @@ function Letter({ note }: { note: Route.ComponentProps["loaderData"]["note"] }) 
       </header>
 
       <div className="letter-meta">
-        <p>File no. LN-{note.id.toUpperCase()}</p>
-        <p>{written}</p>
+        <p>
+          <Field label="file no.">LN-{note.id.toUpperCase()}</Field>
+        </p>
+        <p>
+          <Field label="date issued">{written}</Field>
+        </p>
       </div>
 
       <p className="letter-re">
-        Re: Lateness of <Blank>{note.from_name}</Blank> to <Blank>{note.event}</Blank>
+        Re: Lateness of {lateParty} to{" "}
+        <Field label="occasion" handwritten>
+          {note.event}
+        </Field>
       </p>
 
       <p>
-        Dear <Blank>{note.to_name}</Blank>,
+        Dear{" "}
+        <Field label="recipient" handwritten after=",">
+          {note.to_name}
+        </Field>
       </p>
 
       <p>Please accept the sincere apologies of the TTC.</p>
 
-      {note.source === "delay" ? (
-        <p>
-          Our records show that on {formatDate(note.date)} at {formatTime(note.time)}, {route} {mode} service near{" "}
-          {note.location} was delayed <Struck>{note.minutes} minutes</Struck> due to <Struck>{note.cause}</Struck>.
-        </p>
-      ) : (
-        <p>
-          Our records show that on {formatDate(note.date)}
-          {note.time && ` at ${formatTime(note.time)}`}, {route} service {note.effect}
-          {note.location && ` ${note.location}`}
-          {note.minutes ? (
-            <>
-              {" "}
-              for <Struck>about {note.minutes} minutes</Struck>
-            </>
-          ) : null}{" "}
-          due to <Struck>{note.cause}</Struck>.
-        </p>
-      )}
+      <p>
+        Our records show that on{" "}
+        <Field label="date" after={note.time ? "" : ","}>
+          {formatDate(note.date)}
+        </Field>
+        {note.time && (
+          <>
+            {" "}
+            at{" "}
+            <Field label="time" after=",">
+              {formatTime(note.time)}
+            </Field>
+          </>
+        )}{" "}
+        <Field label="route">
+          <RouteBadge mode={mode} route={note.route} name={note.line_name} />
+        </Field>{" "}
+        {note.source === "delay" ? (
+          <>
+            <Field label="vehicle">{mode}</Field> service near <Field label="location">{note.location}</Field> was
+            delayed{" "}
+            <Field label="length of delay">
+              <Struck>{note.minutes} minutes</Struck>
+            </Field>
+          </>
+        ) : (
+          <>
+            service <Field label="nature of disruption">{note.effect}</Field>
+            {note.location && (
+              <>
+                {" "}
+                <Field label="affected section">{note.location}</Field>
+              </>
+            )}
+            {note.minutes ? (
+              <>
+                {" "}
+                for{" "}
+                <Field label="approx. duration">
+                  <Struck>about {note.minutes} minutes</Struck>
+                </Field>
+              </>
+            ) : null}
+          </>
+        )}{" "}
+        due to{" "}
+        <Field label="reason for delay" after=".">
+          <Struck>{note.cause}</Struck>
+        </Field>
+      </p>
 
       <p>
-        <Blank>{note.from_name}</Blank> left on time and put their faith in public transit. That faith was,
-        regrettably, misplaced.
+        {lateParty} left on time and put their faith in public transit. That faith was, regrettably, misplaced.
       </p>
 
       <p>We hope you can forgive them. If anyone is to blame, it is us.</p>
@@ -126,11 +170,12 @@ function Letter({ note }: { note: Route.ComponentProps["loaderData"]["note"] }) 
 
       <footer className="letter-footnote">
         <p>
-          Official cause, per the {note.source === "delay" ? "TTC delay log" : "TTC service alert"}: “
-          {note.cause_official}”
+          Official cause, per the {note.source === "delay" ? "TTC delay log" : "TTC service alert"}:{" "}
+          <Field label="verbatim">“{note.cause_official}”</Field>
         </p>
         <p>
-          We can confirm the delay happened. We can't confirm {note.from_name} was on board. Forgive accordingly.
+          We can confirm the delay happened. We can't confirm <Field label="late party">{note.from_name}</Field> was on
+          board. Forgive accordingly.
         </p>
         <p className="form-code">Form LN-1</p>
       </footer>
@@ -143,9 +188,34 @@ function Struck({ children }: { children: React.ReactNode }) {
   return <span className="struck">{children}</span>;
 }
 
-// What the person filled in, handwritten into a blank.
-function Blank({ children }: { children: React.ReactNode }) {
-  return <span className="blank-filled">{children}</span>;
+// A filled-in blank, as on a printed form: the value on a rule, with a small
+// caption under it saying what goes there. Handwritten for what the person
+// supplied, typed for what came from the records. `after` is punctuation that
+// must stay on the same line as the blank.
+function Field({
+  label,
+  handwritten,
+  after,
+  children,
+}: {
+  label: string;
+  handwritten?: boolean;
+  after?: string;
+  children: React.ReactNode;
+}) {
+  const field = (
+    <span className={handwritten ? "filled handwritten" : "filled"}>
+      <span className="filled-value">{children}</span>
+      <span className="filled-caption">({label})</span>
+    </span>
+  );
+  if (!after) return field;
+  return (
+    <span className="nowrap">
+      {field}
+      {after}
+    </span>
+  );
 }
 
 function Stamp({ date }: { date: string }) {
