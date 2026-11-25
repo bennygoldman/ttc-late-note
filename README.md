@@ -80,6 +80,17 @@ a week; each monthly release takes about 8 hours.
 - Some text is double-encoded (`â€“` instead of `–`). The import repairs it.
 - About 5% of delays use cause codes that aren't in any published code list.
 
+## Health check
+
+`/health` returns `ok` (status 200), or a list of problems (status 503) when:
+
+- the alerts poller hasn't succeeded in 20 minutes,
+- the import hasn't succeeded in 3 hours, or
+- the newest official data is more than 80 days old (the City may have moved the dataset).
+
+Each scheduled run records its result in the `heartbeats` table, which is what
+this reads. An UptimeRobot monitor checks it every 5 minutes and emails on failure.
+
 ## Running it locally
 
 Requires Node 22.22+.

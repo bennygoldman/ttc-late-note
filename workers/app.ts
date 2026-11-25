@@ -1,6 +1,7 @@
 import { createRequestHandler } from "react-router";
 import { syncAlerts } from "../app/server/alerts";
 import { syncOpenData } from "../app/server/opendata";
+import { withHeartbeat } from "../app/server/heartbeat";
 
 const requestHandler = createRequestHandler(
   () => import("virtual:react-router/server-build"),
@@ -18,12 +19,13 @@ export default {
     return requestHandler(request);
   },
 
-  // Cron schedules are defined in wrangler.jsonc.
+  // Cron schedules are defined in wrangler.jsonc. Each run is recorded in
+  // the heartbeats table, which /health checks.
   async scheduled(controller, env) {
     if (controller.cron === "*/5 * * * *") {
-      console.log(await syncAlerts(env.DB));
+      console.log(await withHeartbeat(env.DB, "alerts", () => syncAlerts(env.DB)));
     } else {
-      console.log(await syncOpenData(env.DB));
+      console.log(await withHeartbeat(env.DB, "opendata", () => syncOpenData(env.DB)));
     }
   },
 } satisfies ExportedHandler<Env>;
